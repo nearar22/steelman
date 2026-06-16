@@ -206,24 +206,18 @@ The exported site lands in `frontend/out`.
 
 ## Deploy notes
 
-The frontend is a static export served two ways. On Cloudflare Pages the site is served from a project root, so `basePath` is empty; the build detects this through the `CF_PAGES` environment variable. On GitHub Pages the site is served from the `/steelman` subpath, so `basePath` is `/steelman`. The toggle lives in `frontend/next.config.js`, and a `.nojekyll` file ships in `frontend/public` so GitHub Pages serves the `_next` asset folder untouched.
+The frontend is a static export hosted on Cloudflare Pages, served from the project root, so `basePath` is empty; the build detects this through the `CF_PAGES` environment variable (the toggle lives in `frontend/next.config.js`).
 
 ```bash
-# GitHub Pages build (basePath /steelman)
-npm run build
-
-# Cloudflare Pages build (basePath '')
 $env:CF_PAGES="1"; npm run build
 npx wrangler pages deploy out --project-name steelman --branch main
 ```
 
 ---
 
-## Live links
+## On-chain
 
-- Cloudflare Pages: https://steelman.pages.dev/
-- GitHub Pages: https://nearar22.github.io/steelman/
-- Contract on the explorer: https://explorer-bradbury.genlayer.com/address/0x2344c3ee47C2f546c5e6Ad205aF20F6E2a06397b
+- Contract: https://explorer-bradbury.genlayer.com/address/0x2344c3ee47C2f546c5e6Ad205aF20F6E2a06397b
 - Deploy transaction: https://explorer-bradbury.genlayer.com/tx/0xe343fc375caf8f901f1fbe4fc1dea30bde130b1495a3671e43b8913c8e0f5abd
 
 The two writes narrated above are on-chain as well: the `open_gauntlet` that created `g1`, and the `submit_defense` that ruled round 1 HOLDS at conviction 95. Both are visible from the contract's address page on the explorer.

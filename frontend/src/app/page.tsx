@@ -8,6 +8,11 @@ import Header from '@/components/Header';
 import Transcript from '@/components/Transcript';
 import ConsensusTheater from '@/components/ConsensusTheater';
 import LampStage from '@/components/LampStage';
+import Standings from '@/components/Standings';
+import StageGauntlet from '@/components/StageGauntlet';
+import Docket from '@/components/Docket';
+import VerdictLegend from '@/components/VerdictLegend';
+import TypeLine from '@/components/TypeLine';
 import { useWallet } from '@/hooks/useWallet';
 import { useGauntlets } from '@/hooks/useGauntlets';
 import {
@@ -21,6 +26,7 @@ import {
   sendOpenGauntlet,
   type GauntletDetail,
   type GauntletSummary,
+  type Stats,
 } from '@/lib/contract';
 import { pollUntilDecided, type LeaderDraft } from '@/lib/tx';
 import { friendlyError, shortAddr, statusLabel, explorerTx } from '@/lib/format';
@@ -42,6 +48,9 @@ export default function Page() {
   const [filter, setFilter] = useState<Filter>('all');
   const [showOpen, setShowOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  // staged hero detail (the gauntlet shown center under the lamp on the docket)
+  const [featuredDetail, setFeaturedDetail] = useState<GauntletDetail | null>(null);
 
   // open-gauntlet form
   const [thesis, setThesis] = useState('');
@@ -81,6 +90,47 @@ export default function Page() {
   useEffect(() => {
     if (selectedId) void loadDetail(selectedId);
   }, [selectedId, loadDetail]);
+
+  const filtered = useMemo(() => {
+    return data.gauntlets
+      .filter((g) => {
+        if (filter === 'open') return g.status === 'OPEN';
+        if (filter === 'settled') return g.status !== 'OPEN';
+        return true;
+      })
+      .sort((a, b) => Number(b.id.slice(1)) - Number(a.id.slice(1)));
+  }, [data.gauntlets, filter]);
+
+  // the gauntlet staged center: prefer the most recent open one, else the most
+  // recent of any status, so the hero is always a live-feeling exchange.
+  const featured: GauntletSummary | null = useMemo(() => {
+    if (data.gauntlets.length === 0) return null;
+    const sorted = [...data.gauntlets].sort(
+      (a, b) => Number(b.id.slice(1)) - Number(a.id.slice(1)),
+    );
+    const open = sorted.find((g) => g.status === 'OPEN');
+    return open ?? sorted[0];
+  }, [data.gauntlets]);
+
+  // load the full detail of the featured gauntlet for the staged exchange
+  useEffect(() => {
+    let alive = true;
+    if (!featured) {
+      setFeaturedDetail(null);
+      return;
+    }
+    void (async () => {
+      try {
+        const d = await fetchGauntlet(featured.id);
+        if (alive) setFeaturedDetail(d);
+      } catch {
+        if (alive) setFeaturedDetail(null);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [featured]);
 
   const resetTx = useCallback(() => {
     setPhase('idle');
@@ -195,16 +245,6 @@ export default function Page() {
     );
   }, [selectedId, defense, runWrite, loadDetail, data, flash]);
 
-  const filtered = useMemo(() => {
-    return data.gauntlets
-      .filter((g) => {
-        if (filter === 'open') return g.status === 'OPEN';
-        if (filter === 'settled') return g.status !== 'OPEN';
-        return true;
-      })
-      .sort((a, b) => Number(b.id.slice(1)) - Number(a.id.slice(1)));
-  }, [data.gauntlets, filter]);
-
   const isChallenger =
     detail && wallet.address && detail.challenger.toLowerCase() === wallet.address.toLowerCase();
 
@@ -214,8 +254,10 @@ export default function Page() {
         <span className="lamp-cord" />
         <span className="lamp-glow" />
         <LampStage />
+        <span className="beam" />
         <span className="haze" />
       </div>
+      <div className="table-grain" aria-hidden />
       <div className="vignette" aria-hidden />
       <div className="grain" aria-hidden />
       <div className="shell">
@@ -225,6 +267,9 @@ export default function Page() {
           {!selectedId ? (
             <ListView
               gauntlets={filtered}
+              stats={data.stats}
+              featured={featured}
+              featuredDetail={featuredDetail}
               loading={data.loading}
               error={data.error}
               stale={data.stale}
@@ -422,6 +467,9 @@ export default function Page() {
 
 function ListView({
   gauntlets,
+  stats,
+  featured,
+  featuredDetail,
   loading,
   error,
   stale,
@@ -433,6 +481,9 @@ function ListView({
   hasWallet,
 }: {
   gauntlets: GauntletSummary[];
+  stats: Stats | null;
+  featured: GauntletSummary | null;
+  featuredDetail: GauntletDetail | null;
   loading: boolean;
   error: string | null;
   stale: boolean;
@@ -445,112 +496,143 @@ function ListView({
 }) {
   return (
     <>
-      <section className="lede">
-        <div className="kicker">An on-chain AI debate gauntlet</div>
-        <h1>
-          Take the chair. <span className="accent">Defend your thesis</span> under the lamp.
-        </h1>
-        <p>
-          Stake a claim and the adversary, an injection-resistant AI interrogator, opens fire with its
-          sharpest rebuttal. Answer round by round. Every ruling, HOLDS, CONCEDES, or COLLAPSES, is settled
-          on-chain by GenLayer validators, not by any one server.
-        </p>
-        <div className="lede-actions">
-          <button className="btn btn-primary" onClick={onNew}>
-            <Plus size={16} /> Open a gauntlet
-          </button>
-          <button className="btn btn-ghost" onClick={onRetry}>
-            <RefreshCw size={14} /> Refresh
-          </button>
-        </div>
-      </section>
-
-      <section className="transcript">
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 18,
-            flexWrap: 'wrap',
-            gap: 12,
-          }}
-        >
-          <div className="kicker">Case docket</div>
-          <div className="seg">
-            <button className={filter === 'all' ? 'on' : ''} onClick={() => onFilter('all')}>
-              All
-            </button>
-            <button className={filter === 'open' ? 'on' : ''} onClick={() => onFilter('open')}>
-              In session
-            </button>
-            <button className={filter === 'settled' ? 'on' : ''} onClick={() => onFilter('settled')}>
-              Settled
-            </button>
+      {/* case-file masthead */}
+      <motion.section
+        className="masthead"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <span className="masthead-scan" aria-hidden />
+        <div className="masthead-inner">
+          <div className="masthead-tag">
+            <span className="stamp-chip">Case open</span>
+            <span>An on-chain AI debate gauntlet</span>
+            <span style={{ opacity: 0.4 }}>.</span>
+            <span>GenLayer Bradbury</span>
           </div>
-        </div>
-
-        {stale && (
-          <div className="mono" style={{ fontSize: '0.66rem', color: 'var(--concede)', marginBottom: 12 }}>
-            Data may be a couple of minutes old. The network reads slowly.
-          </div>
-        )}
-
-        {loading ? (
-          <div style={{ display: 'grid', gap: 12 }}>
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="skel" style={{ height: 96 }} />
-            ))}
-          </div>
-        ) : error ? (
-          <div className="note-card">
-            <AlertTriangle size={28} color="var(--crimson)" />
-            <h3>Could not reach the contract</h3>
-            <p style={{ maxWidth: '46ch', margin: '0 auto 16px' }}>{friendlyError(error)}</p>
+          <h1>
+            Take the chair. <span className="accent">Defend your thesis</span> under the lamp.
+          </h1>
+          <p>
+            Stake a claim and the adversary, an injection-resistant AI interrogator, opens fire with its
+            sharpest rebuttal. Answer round by round. Every ruling, HOLDS, CONCEDES, or COLLAPSES, is
+            settled on-chain by GenLayer validators, not by any one server.
+          </p>
+          <div className="masthead-actions">
+            <button className="btn btn-primary btn-lg" onClick={onNew}>
+              <Plus size={16} /> Open a gauntlet
+            </button>
             <button className="btn" onClick={onRetry}>
-              <RefreshCw size={14} /> Retry
+              <RefreshCw size={14} /> Refresh the docket
             </button>
           </div>
-        ) : gauntlets.length === 0 ? (
-          <div className="note-card">
-            <EmptyMark />
-            <h3>The room is empty</h3>
-            <p style={{ maxWidth: '44ch', margin: '0 auto 18px' }}>
-              No gauntlets yet. Stake the first thesis and face the adversary.
-            </p>
-            <button className="btn btn-primary" onClick={onNew}>
-              <Plus size={16} /> {hasWallet ? 'Open the first gauntlet' : 'Connect and begin'}
-            </button>
+          <div className="masthead-rule" />
+        </div>
+      </motion.section>
+
+      <Standings stats={stats} loading={loading} />
+
+      {stale && (
+        <div className="mono" style={{ fontSize: '0.66rem', color: 'var(--concede)', margin: '14px 0 0' }}>
+          Data may be a couple of minutes old. The network reads slowly.
+        </div>
+      )}
+
+      <div className="room-grid">
+        <div>
+          <div className="section-head">
+            <span className="kicker">Under the lamp</span>
+            {featured && (
+              <span className="mono" style={{ fontSize: '0.62rem', color: 'var(--bone-faint)' }}>
+                {featured.id} . {statusLabel(featured.status)}
+              </span>
+            )}
           </div>
-        ) : (
-          <div style={{ display: 'grid', gap: 12 }}>
-            {gauntlets.map((g) => (
-              <button
-                key={g.id}
-                className="case-row"
-                style={{ textAlign: 'left' }}
-                onClick={() => onSelect(g.id)}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span className={`verdict-tag ${statusTagClass(g.status)}`}>{statusLabel(g.status)}</span>
-                  <span className="mono" style={{ fontSize: '0.64rem', color: 'var(--bone-faint)' }}>
-                    {g.id} . round {Math.min(g.round, g.target_rounds)}/{g.target_rounds}
-                  </span>
-                </div>
-                <div className="case-thesis">{g.thesis}</div>
-                <div className="case-foot">
-                  <span>{shortAddr(g.challenger)}</span>
-                  <span>conviction {g.conviction}/100</span>
-                  <div className="meter" style={{ flex: 1, minWidth: 80, maxWidth: 160 }}>
-                    <span style={{ width: `${g.conviction}%` }} />
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
+
+          {loading && !featured ? (
+            <div className="stage" style={{ display: 'grid', gap: 14 }}>
+              <div className="skel" style={{ height: 26, width: '40%' }} />
+              <div className="skel" style={{ height: 56, width: '85%' }} />
+              <div className="skel" style={{ height: 90 }} />
+              <div className="skel" style={{ height: 44, width: '50%' }} />
+            </div>
+          ) : error && !featured ? (
+            <div className="stage">
+              <div className="note-card" style={{ border: 'none', padding: '24px 8px' }}>
+                <AlertTriangle size={28} color="var(--crimson)" />
+                <h3>Could not reach the contract</h3>
+                <p style={{ maxWidth: '46ch', margin: '0 auto 16px' }}>{friendlyError(error)}</p>
+                <button className="btn" onClick={onRetry}>
+                  <RefreshCw size={14} /> Retry
+                </button>
+              </div>
+            </div>
+          ) : featured ? (
+            <StageGauntlet
+              summary={featured}
+              detail={featuredDetail}
+              onEnter={() => onSelect(featured.id)}
+              onOpenNew={onNew}
+            />
+          ) : (
+            <ChairEmptyState onNew={onNew} hasWallet={hasWallet} />
+          )}
+        </div>
+
+        <aside className="rail">
+          <Docket
+            gauntlets={gauntlets}
+            loading={loading}
+            error={error}
+            filter={filter}
+            featuredId={featured?.id ?? null}
+            onFilter={onFilter}
+            onSelect={onSelect}
+            onRetry={onRetry}
+          />
+          <VerdictLegend />
+        </aside>
+      </div>
     </>
+  );
+}
+
+/**
+ * The crafted start state: an empty chair staged on the lit table, a
+ * typewriter intro line, and a clear invitation to take the chair. Never a bare
+ * headline floating in black.
+ */
+function ChairEmptyState({ onNew, hasWallet }: { onNew: () => void; hasWallet: boolean }) {
+  return (
+    <motion.section
+      className="stage"
+      initial={{ opacity: 0, y: 22, scale: 0.99 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.16 }}
+    >
+      <div className="chair">
+        <div className="chair-mark" aria-hidden>
+          <ChairMark />
+        </div>
+        <div className="kicker" style={{ color: 'var(--crimson)', justifyContent: 'center', display: 'flex' }}>
+          The room is empty
+        </div>
+        <h2>The lamp is lit. The chair is waiting.</h2>
+        <p className="mono" style={{ fontSize: '0.82rem', color: 'var(--bone-dim)', minHeight: '1.4em' }}>
+          <TypeLine
+            text={'No gauntlet on the table yet. Stake the first thesis and the adversary takes its seat.'}
+            speed={22}
+            startDelay={400}
+          />
+        </p>
+        <div className="stage-cta" style={{ justifyContent: 'center' }}>
+          <button className="btn btn-primary btn-lg" onClick={onNew}>
+            <Gavel size={16} /> {hasWallet ? 'Open the first gauntlet' : 'Connect and begin'}
+          </button>
+        </div>
+      </div>
+    </motion.section>
   );
 }
 
@@ -588,7 +670,12 @@ function DetailView({
           <div className="skel" style={{ height: 120 }} />
         </div>
       ) : (
-        <>
+        <motion.div
+          className="detail-card"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        >
           <div className="kicker">{detail.id} . challenger {shortAddr(detail.challenger)}</div>
           <h1
             className="display"
@@ -644,16 +731,10 @@ function DetailView({
               )}
             </div>
           )}
-        </>
+        </motion.div>
       )}
     </section>
   );
-}
-
-function statusTagClass(status: string): string {
-  if (status === 'VINDICATED') return 'holds';
-  if (status === 'COLLAPSED') return 'collapses';
-  return 'concedes';
 }
 
 function ConfirmedBlock({ onClose, label }: { onClose: () => void; label: string }) {
@@ -727,11 +808,16 @@ function ModalHead({
   );
 }
 
-function EmptyMark() {
+function ChairMark() {
   return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden>
-      <circle cx="20" cy="14" r="9" stroke="var(--bone-faint)" strokeWidth="1.4" />
-      <path d="M6 36c1.8-7 7.4-11 14-11s12.2 4 14 11" stroke="var(--bone-faint)" strokeWidth="1.4" strokeLinecap="round" />
+    <svg width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden>
+      <path
+        d="M10 5v11M24 5v11M9 16h16M11 16l-1 13M23 16l1 13M10 22h14"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
