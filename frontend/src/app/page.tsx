@@ -7,6 +7,7 @@ import { Gavel, Plus, RefreshCw, ArrowLeft, Send, AlertTriangle, Scale } from 'l
 import Header from '@/components/Header';
 import Transcript from '@/components/Transcript';
 import ConsensusTheater from '@/components/ConsensusTheater';
+import LampStage from '@/components/LampStage';
 import { useWallet } from '@/hooks/useWallet';
 import { useGauntlets } from '@/hooks/useGauntlets';
 import {
@@ -209,7 +210,13 @@ export default function Page() {
 
   return (
     <>
-      <div className="lamp-pool" aria-hidden />
+      <div className="lamp-stage" aria-hidden>
+        <span className="lamp-cord" />
+        <span className="lamp-glow" />
+        <LampStage />
+        <span className="haze" />
+      </div>
+      <div className="vignette" aria-hidden />
       <div className="grain" aria-hidden />
       <div className="shell">
         <Header wallet={wallet} onConnect={wallet.connect} onDisconnect={wallet.disconnect} />
@@ -394,16 +401,19 @@ export default function Page() {
         )}
       </AnimatePresence>
 
-      {toast && (
-        <motion.div
-          className="toast"
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-        >
-          {toast}
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            className="toast"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 14 }}
+          >
+            <span className="toast-mark" aria-hidden />
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Copy, Check, LogOut, Wallet } from 'lucide-react';
-import { CONTRACT_ADDRESS, EXPLORER, FAUCET } from '@/lib/contract';
+import { CONTRACT_ADDRESS, EXPLORER } from '@/lib/contract';
 import { shortAddr, explorerAddr } from '@/lib/format';
 import type { WalletState } from '@/hooks/useWallet';
 
@@ -49,10 +49,6 @@ export default function Header({ wallet, onConnect, onDisconnect }: HeaderProps)
             title="Contract on explorer"
           >
             {shortAddr(CONTRACT_ADDRESS)}
-          </a>
-          <span className="sep hide-sm">/</span>
-          <a className="hide-sm" href={FAUCET} target="_blank" rel="noreferrer">
-            Faucet
           </a>
 
           {wallet.address ? (

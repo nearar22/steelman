@@ -75,15 +75,111 @@ button {
   font-family: var(--display);
 }
 
-/* lamp pool background */
-.lamp-pool {
+/* lamp stage: canvas light pool + swaying CSS glow + drifting haze */
+.lamp-stage {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  overflow: hidden;
   background:
-    radial-gradient(120% 60% at 50% -8%, var(--lamp), transparent 60%),
-    radial-gradient(80% 50% at 50% 0%, rgba(226, 59, 59, 0.05), transparent 55%);
+    radial-gradient(140% 80% at 50% 120%, #050506 0%, transparent 60%),
+    var(--ink);
+}
+.lamp-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+/* the cord the lamp hangs from, anchored above the frame */
+.lamp-cord {
+  position: absolute;
+  top: -64px;
+  left: 50%;
+  width: 2px;
+  height: 130px;
+  margin-left: -1px;
+  background: linear-gradient(180deg, transparent, rgba(124, 119, 110, 0.5));
+  transform-origin: top center;
+  animation: lamp-sway 9s ease-in-out infinite;
+}
+/* a soft css glow that sways in sympathy with the canvas pool */
+.lamp-glow {
+  position: absolute;
+  top: -22%;
+  left: 50%;
+  width: 70vw;
+  height: 80vh;
+  margin-left: -35vw;
+  background: radial-gradient(50% 50% at 50% 30%, var(--crimson-glow), transparent 70%);
+  filter: blur(40px);
+  transform-origin: 50% -20%;
+  animation: lamp-sway 9s ease-in-out infinite;
+  opacity: 0.7;
+}
+/* faint drifting haze sheet layered over the beam */
+.haze {
+  position: absolute;
+  inset: -10%;
+  background:
+    radial-gradient(40% 30% at 30% 20%, rgba(244, 236, 222, 0.05), transparent 60%),
+    radial-gradient(50% 40% at 70% 10%, rgba(244, 236, 222, 0.04), transparent 60%);
+  animation: dust-drift 26s linear infinite;
+  opacity: 0.8;
+}
+
+/* a hard lamp-lit vignette to seat the room in shadow */
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 8%, transparent 38%, rgba(0, 0, 0, 0.55) 78%, rgba(0, 0, 0, 0.86) 100%);
+}
+
+@keyframes lamp-sway {
+  0% {
+    transform: rotate(-2.6deg);
+  }
+  50% {
+    transform: rotate(2.6deg);
+  }
+  100% {
+    transform: rotate(-2.6deg);
+  }
+}
+
+@keyframes dust-drift {
+  0% {
+    transform: translate3d(-3%, 2%, 0);
+  }
+  50% {
+    transform: translate3d(3%, -2%, 0);
+  }
+  100% {
+    transform: translate3d(-3%, 2%, 0);
+  }
+}
+
+@keyframes verdict-stamp {
+  0% {
+    opacity: 0;
+    transform: rotate(-9deg) scale(2.6);
+  }
+  55% {
+    opacity: 0.9;
+    transform: rotate(-9deg) scale(0.92);
+  }
+  70% {
+    transform: rotate(-9deg) scale(1.06);
+  }
+  100% {
+    opacity: 0.88;
+    transform: rotate(-9deg) scale(1);
+  }
 }
 
 .grain {
@@ -306,6 +402,10 @@ button {
   gap: 14px;
   padding: 18px 0;
   border-bottom: 1px solid var(--line);
+  transition: background 0.2s ease;
+}
+.turn:hover {
+  background: linear-gradient(90deg, rgba(244, 236, 222, 0.015), transparent 70%);
 }
 .turn .speaker {
   flex: 0 0 86px;
@@ -375,6 +475,40 @@ button {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
+  box-shadow: 0 24px 60px -36px rgba(0, 0, 0, 0.9);
+}
+
+/* verdict stamp slammed across the table when a ruling lands */
+.stamp {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-9deg);
+  margin: -0.1em 0 0 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(3rem, 13vw, 7rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.16;
+  white-space: nowrap;
+  animation: verdict-stamp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.stamp::after {
+  content: '';
+  position: absolute;
+  inset: -8% -4%;
+  border: 4px solid currentColor;
+  border-radius: 6px;
+  opacity: 0.5;
+}
+.stamp-hold {
+  color: var(--hold);
+}
+.stamp-collapse {
+  color: var(--collapse);
 }
 
 /* conviction meter */
@@ -557,6 +691,9 @@ label.fld {
   bottom: 22px;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
   background: var(--ink-3);
   border: 1px solid var(--line-2);
   border-left: 3px solid var(--crimson);
@@ -565,6 +702,26 @@ label.fld {
   font-size: 0.85rem;
   max-width: 90vw;
   box-shadow: var(--shadow-pool);
+}
+.toast-mark {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: var(--crimson);
+  box-shadow: 0 0 8px var(--crimson);
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
 }
 
 /* empty / error / skeleton */
@@ -600,15 +757,36 @@ label.fld {
 /* list rows */
 .case-row {
   display: block;
-  padding: 16px 18px;
+  position: relative;
+  padding: 16px 18px 16px 20px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel);
-  transition: border-color 0.15s, transform 0.15s;
+  box-shadow: 0 18px 44px -34px rgba(0, 0, 0, 0.9);
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.case-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--crimson);
+  opacity: 0;
+  transform: scaleY(0.4);
+  transform-origin: center;
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }
 .case-row:hover {
   border-color: var(--line-2);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  background: var(--panel-2);
+  box-shadow: 0 26px 60px -30px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(226, 59, 59, 0.08);
+}
+.case-row:hover::before {
+  opacity: 1;
+  transform: scaleY(1);
 }
 .case-row .case-thesis {
   font-size: 1.04rem;
