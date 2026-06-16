@@ -183,38 +183,6 @@ Key UX decisions:
 
 ---
 
-## Quick start
-
-```bash
-git clone https://github.com/nearar22/steelman.git
-cd steelman/frontend
-npm install
-npm run dev
-```
-
-Then open the dev server URL it prints. The frontend reads from the live contract out of the box.
-
-To produce the static build:
-
-```bash
-npm run build
-```
-
-The exported site lands in `frontend/out`.
-
----
-
-## Deploy notes
-
-The frontend is a static export hosted on Cloudflare Pages, served from the project root, so `basePath` is empty; the build detects this through the `CF_PAGES` environment variable (the toggle lives in `frontend/next.config.js`).
-
-```bash
-$env:CF_PAGES="1"; npm run build
-npx wrangler pages deploy out --project-name steelman --branch main
-```
-
----
-
 ## On-chain
 
 - Contract: https://explorer-bradbury.genlayer.com/address/0x2344c3ee47C2f546c5e6Ad205aF20F6E2a06397b
