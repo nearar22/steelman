@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { ArrowRight, Gavel, Scale } from 'lucide-react';
 import TypeLine from './TypeLine';
+import ConvictionGauge from './ConvictionGauge';
 import type { GauntletSummary, GauntletDetail } from '@/lib/contract';
 import { shortAddr, statusLabel } from '@/lib/format';
 
@@ -65,16 +66,24 @@ export default function StageGauntlet({ summary, detail, onEnter, onOpenNew }: S
         </p>
       )}
 
-      <div className="stage-conviction">
-        <span className="mono" style={{ fontSize: '0.66rem', color: 'var(--bone-faint)', whiteSpace: 'nowrap' }}>
-          conviction {conviction}/100
-        </span>
-        <div className="meter tall" style={{ flex: 1 }}>
-          <motion.span
-            initial={{ width: 0 }}
-            animate={{ width: `${conviction}%` }}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.5 }}
-          />
+      <div className="stage-meter-row">
+        <ConvictionGauge value={conviction} />
+        <div className="stage-meter-readout">
+          <span className="kicker">Conviction holding</span>
+          <div className="meter tall" style={{ marginTop: 10 }}>
+            <motion.span
+              initial={{ width: 0 }}
+              animate={{ width: `${conviction}%` }}
+              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.5 }}
+            />
+          </div>
+          <p className="mono" style={{ fontSize: '0.66rem', color: 'var(--bone-faint)', margin: '10px 0 0' }}>
+            {conviction >= 55
+              ? 'The thesis is standing. Every round the adversary tightens the screws.'
+              : conviction >= 25
+                ? 'Wounded but breathing. One weak answer ends it.'
+                : 'On the brink of collapse.'}
+          </p>
         </div>
       </div>
 

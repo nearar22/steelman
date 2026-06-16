@@ -44,15 +44,15 @@ export default function LampStage() {
     let motes: Mote[] = [];
 
     const seedMotes = () => {
-      const count = Math.min(150, Math.max(60, Math.round((w * h) / 13000)));
+      const count = Math.min(220, Math.max(90, Math.round((w * h) / 9000)));
       motes = Array.from({ length: count }, () => ({
         x: Math.random() * w,
         y: Math.random() * h,
-        r: 0.4 + Math.random() * 2.1,
-        drift: 0.2 + Math.random() * 0.9,
-        speed: 0.05 + Math.random() * 0.26,
+        r: 0.4 + Math.random() * 2.6,
+        drift: 0.2 + Math.random() * 1.1,
+        speed: 0.05 + Math.random() * 0.32,
         phase: Math.random() * Math.PI * 2,
-        alpha: 0.05 + Math.random() * 0.22,
+        alpha: 0.05 + Math.random() * 0.26,
       }));
     };
 
@@ -75,27 +75,37 @@ export default function LampStage() {
       ctx.clearRect(0, 0, w, h);
 
       // ---- lamp position: a gentle pendulum sway anchored above the frame ---
-      const sway = Math.sin(t * 0.006) * (w * 0.05);
+      const sway = Math.sin(t * 0.006) * (w * 0.055);
       const breathe = 0.5 + 0.5 * Math.sin(t * 0.013);
       // a faint, fast bulb flicker layered on top of the slow breathe
       const flicker =
         0.92 +
         0.08 * Math.sin(t * 0.5) +
         0.04 * Math.sin(t * 1.7 + 1.3) +
-        (Math.random() < 0.012 ? -0.12 : 0);
+        (Math.random() < 0.012 ? -0.14 : 0);
       const cx = w / 2 + sway;
-      const cy = -h * 0.08; // bulb sits just above the top edge
-      const tableY = h * 0.96; // where the pool lands on the table
-      const pool = Math.max(w, h) * (0.74 + breathe * 0.05);
+      const cy = -h * 0.06; // bulb sits just above the top edge
+      const tableY = h * 0.95; // where the pool lands on the table
+      const pool = Math.max(w, h) * (0.78 + breathe * 0.06);
+
+      // ---- 0. deepen the edges into black so the lit core reads as a pool ---
+      const edge = ctx.createRadialGradient(cx, tableY * 0.62, pool * 0.18, cx, tableY * 0.62, pool * 1.15);
+      edge.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      edge.addColorStop(0.62, 'rgba(0, 0, 0, 0)');
+      edge.addColorStop(1, 'rgba(0, 0, 0, 0.72)');
+      ctx.save();
+      ctx.fillStyle = edge;
+      ctx.fillRect(0, 0, w, h);
+      ctx.restore();
 
       // ---- 1. the volumetric cone of light from the bulb to the table ------
       // drawn as a soft triangle gradient so the beam is a visible shaft
-      const topHalf = w * 0.05;
-      const botHalf = w * 0.42;
+      const topHalf = w * 0.045;
+      const botHalf = w * 0.44;
       const beamGrad = ctx.createLinearGradient(0, cy, 0, tableY);
-      beamGrad.addColorStop(0, `rgba(255, 246, 230, ${0.22 * flicker})`);
-      beamGrad.addColorStop(0.35, `rgba(248, 238, 222, ${0.12 * flicker})`);
-      beamGrad.addColorStop(0.75, `rgba(226, 170, 120, ${0.05 * flicker})`);
+      beamGrad.addColorStop(0, `rgba(255, 246, 230, ${0.3 * flicker})`);
+      beamGrad.addColorStop(0.35, `rgba(248, 238, 222, ${0.15 * flicker})`);
+      beamGrad.addColorStop(0.75, `rgba(226, 170, 120, ${0.06 * flicker})`);
       beamGrad.addColorStop(1, 'rgba(226, 90, 70, 0)');
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
@@ -111,9 +121,9 @@ export default function LampStage() {
 
       // ---- 2. the warm wash falling from the bulb -------------------------
       const warm = ctx.createRadialGradient(cx, cy, 0, cx, cy, pool);
-      warm.addColorStop(0, `rgba(255, 244, 226, ${(0.26 + breathe * 0.06) * flicker})`);
-      warm.addColorStop(0.26, `rgba(246, 232, 210, ${(0.12 + breathe * 0.03) * flicker})`);
-      warm.addColorStop(0.52, 'rgba(226, 120, 80, 0.05)');
+      warm.addColorStop(0, `rgba(255, 244, 226, ${(0.32 + breathe * 0.07) * flicker})`);
+      warm.addColorStop(0.26, `rgba(246, 232, 210, ${(0.15 + breathe * 0.04) * flicker})`);
+      warm.addColorStop(0.52, 'rgba(226, 120, 80, 0.06)');
       warm.addColorStop(1, 'rgba(0, 0, 0, 0)');
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
@@ -125,21 +135,33 @@ export default function LampStage() {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       ctx.translate(cx, tableY);
-      ctx.scale(1, 0.34); // flatten the pool into an ellipse on the table
-      const poolGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, botHalf * 1.15);
-      poolGrad.addColorStop(0, `rgba(255, 247, 232, ${0.5 * flicker})`);
-      poolGrad.addColorStop(0.4, `rgba(244, 224, 198, ${0.22 * flicker})`);
-      poolGrad.addColorStop(0.75, 'rgba(214, 120, 80, 0.06)');
+      ctx.scale(1, 0.32); // flatten the pool into an ellipse on the table
+      const poolGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, botHalf * 1.2);
+      poolGrad.addColorStop(0, `rgba(255, 247, 232, ${0.62 * flicker})`);
+      poolGrad.addColorStop(0.4, `rgba(244, 224, 198, ${0.28 * flicker})`);
+      poolGrad.addColorStop(0.75, 'rgba(214, 120, 80, 0.07)');
       poolGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
       ctx.fillStyle = poolGrad;
       ctx.beginPath();
-      ctx.arc(0, 0, botHalf * 1.15, 0, Math.PI * 2);
+      ctx.arc(0, 0, botHalf * 1.2, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
+      // ---- 3b. a thin bright rim where the table catches the pool edge -----
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.translate(cx, tableY);
+      ctx.scale(1, 0.32);
+      ctx.beginPath();
+      ctx.arc(0, 0, botHalf * 0.66, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255, 240, 216, ${0.12 * flicker})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+
       // ---- 4. a tight hot core right under the bulb ------------------------
-      const core = ctx.createRadialGradient(cx, cy + h * 0.05, 0, cx, cy + h * 0.05, pool * 0.3);
-      core.addColorStop(0, `rgba(255, 250, 240, ${(0.2 + breathe * 0.06) * flicker})`);
+      const core = ctx.createRadialGradient(cx, cy + h * 0.04, 0, cx, cy + h * 0.04, pool * 0.26);
+      core.addColorStop(0, `rgba(255, 250, 240, ${(0.28 + breathe * 0.08) * flicker})`);
       core.addColorStop(1, 'rgba(255, 250, 240, 0)');
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
@@ -153,7 +175,7 @@ export default function LampStage() {
       for (const m of motes) {
         m.phase += m.speed * 0.02;
         m.y -= m.speed;
-        const wobble = Math.sin(m.phase) * m.drift * 7;
+        const wobble = Math.sin(m.phase) * m.drift * 9;
         const px = m.x + wobble + sway * 0.3;
         if (m.y < -8) {
           m.y = h + 8;
@@ -164,7 +186,7 @@ export default function LampStage() {
         const halfAtY = topHalf + (botHalf - topHalf) * Math.max(0, Math.min(1, frac));
         const inBeam = Math.max(0, 1 - Math.abs(px - cx) / (halfAtY + 1));
         const lit = inBeam * inBeam;
-        const a = m.alpha * (0.12 + lit * 1.1) * (0.7 + 0.3 * Math.sin(m.phase)) * flicker;
+        const a = m.alpha * (0.12 + lit * 1.3) * (0.7 + 0.3 * Math.sin(m.phase)) * flicker;
         if (a <= 0.012) continue;
         ctx.beginPath();
         ctx.fillStyle = `rgba(255, 245, 228, ${a})`;

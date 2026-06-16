@@ -10,7 +10,7 @@ interface TranscriptProps {
 
 // staggered fade rhythm so dialogue lines reveal in sequence under the lamp
 const reveal = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 12 },
   show: (i: number) => ({
     opacity: 1,
     y: 0,
@@ -24,17 +24,17 @@ function stampWord(status: string): string {
 
 export default function Transcript({ g }: TranscriptProps) {
   return (
-    <div>
+    <div className="transcript-log">
       {g.rounds.length === 0 && g.status === 'OPEN' && (
-        <div className="kicker" style={{ marginBottom: 14 }}>
-          Round 1 of {g.target_rounds}
+        <div className="round-marker">
+          <span>Round 1 of {g.target_rounds}</span>
         </div>
       )}
 
       {g.rounds.map((r) => (
         <div key={r.round}>
-          <div className="kicker" style={{ margin: '20px 0 4px', color: 'var(--bone-faint)' }}>
-            Round {r.round}
+          <div className="round-marker">
+            <span>Round {r.round}</span>
           </div>
 
           <motion.div
@@ -62,8 +62,7 @@ export default function Transcript({ g }: TranscriptProps) {
           </motion.div>
 
           <motion.div
-            className="turn adversary"
-            style={{ borderBottom: '1px dashed var(--line)', alignItems: 'flex-start' }}
+            className="turn ruling"
             variants={reveal}
             custom={2}
             initial="hidden"
@@ -76,7 +75,7 @@ export default function Transcript({ g }: TranscriptProps) {
               <span className="mono" style={{ marginLeft: 10, fontSize: '0.72rem', color: 'var(--bone-dim)' }}>
                 conviction {r.conviction}/100
               </span>
-              <div className="meter" style={{ maxWidth: 220, marginTop: 8 }}>
+              <div className="meter" style={{ maxWidth: 240, margin: '10px auto 0' }}>
                 <motion.span
                   initial={{ width: 0 }}
                   whileInView={{ width: `${r.conviction}%` }}
@@ -84,7 +83,7 @@ export default function Transcript({ g }: TranscriptProps) {
                   transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
                 />
               </div>
-              <div style={{ marginTop: 8, color: 'var(--bone-dim)', fontStyle: 'italic' }}>
+              <div style={{ marginTop: 10, color: 'var(--bone-dim)', fontStyle: 'italic' }}>
                 {r.rationale}
               </div>
             </div>
@@ -94,39 +93,61 @@ export default function Transcript({ g }: TranscriptProps) {
 
       {/* standing rebuttal awaiting a defense */}
       {g.status === 'OPEN' && g.awaiting_defense && (
-        <motion.div
-          className="turn adversary"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="speaker">Adversary</div>
-          <div className="line">
-            <div className="kicker" style={{ color: 'var(--crimson)', marginBottom: 6 }}>
-              Round {g.round} of {g.target_rounds} . awaiting your defense
-            </div>
-            {g.pending_rebuttal}
+        <>
+          <div className="round-marker">
+            <span>
+              Round {g.round} of {g.target_rounds} . awaiting defense
+            </span>
           </div>
-        </motion.div>
+          <motion.div
+            className="turn adversary"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="speaker">Adversary</div>
+            <div className="line">
+              <div className="kicker" style={{ color: 'var(--crimson)', marginBottom: 6 }}>
+                The chair must answer
+              </div>
+              {g.pending_rebuttal}
+            </div>
+          </motion.div>
+        </>
       )}
 
       <AnimatePresence>
         {g.status !== 'OPEN' && (
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
+            animate={{ opacity: 1, scale: 1, x: [0, -6, 5, -4, 3, 0] }}
             exit={{ opacity: 0 }}
+            transition={{ x: { duration: 0.5, delay: 0.18 } }}
             style={{
               position: 'relative',
               overflow: 'hidden',
-              margin: '26px 0 0',
-              padding: '30px 22px',
+              margin: '30px 0 0',
+              padding: '36px 22px',
               border: `1px solid ${g.status === 'VINDICATED' ? 'rgba(111,185,143,0.4)' : 'rgba(226,59,59,0.4)'}`,
               borderRadius: 'var(--radius)',
               background: g.status === 'VINDICATED' ? 'rgba(111,185,143,0.06)' : 'rgba(226,59,59,0.06)',
               textAlign: 'center',
             }}
           >
+            {/* a hard flash the instant the stamp lands */}
+            <motion.span
+              aria-hidden
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 0.5, 0] }}
+              transition={{ duration: 0.5, delay: 0.15, times: [0, 0.16, 1] }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: g.status === 'VINDICATED' ? 'var(--hold)' : 'var(--collapse)',
+                mixBlendMode: 'screen',
+                pointerEvents: 'none',
+              }}
+            />
             <motion.div
               className={`stamp ${g.status === 'VINDICATED' ? 'stamp-hold' : 'stamp-collapse'}`}
               initial={{ opacity: 0, scale: 2.4, rotate: -18 }}
@@ -139,8 +160,9 @@ export default function Transcript({ g }: TranscriptProps) {
             <div
               className="display"
               style={{
+                position: 'relative',
                 fontWeight: 800,
-                fontSize: '1.8rem',
+                fontSize: '1.9rem',
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase',
                 color: g.status === 'VINDICATED' ? 'var(--hold)' : 'var(--collapse)',
@@ -148,10 +170,10 @@ export default function Transcript({ g }: TranscriptProps) {
             >
               {g.status === 'VINDICATED' ? 'Thesis vindicated' : 'Thesis collapsed'}
             </div>
-            <p style={{ color: 'var(--bone-dim)', margin: '10px auto 0', maxWidth: '52ch' }}>
+            <p style={{ position: 'relative', color: 'var(--bone-dim)', margin: '10px auto 0', maxWidth: '52ch' }}>
               {g.outcome_rationale}
             </p>
-            <div className="mono" style={{ fontSize: '0.66rem', color: 'var(--bone-faint)', marginTop: 12 }}>
+            <div className="mono" style={{ position: 'relative', fontSize: '0.66rem', color: 'var(--bone-faint)', marginTop: 12 }}>
               final conviction {g.conviction}/100 over {g.rounds.length} round
               {g.rounds.length === 1 ? '' : 's'}
             </div>

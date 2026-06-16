@@ -7,6 +7,7 @@ import { Gavel, Plus, RefreshCw, ArrowLeft, Send, AlertTriangle, Scale } from 'l
 import Header from '@/components/Header';
 import Transcript from '@/components/Transcript';
 import ConsensusTheater from '@/components/ConsensusTheater';
+import ConvictionGauge from '@/components/ConvictionGauge';
 import LampStage from '@/components/LampStage';
 import Standings from '@/components/Standings';
 import StageGauntlet from '@/components/StageGauntlet';
@@ -683,15 +684,19 @@ function DetailView({
           >
             {detail.thesis}
           </h1>
-          <p style={{ color: 'var(--bone-dim)', fontStyle: 'italic', margin: '0 0 8px' }}>
+          <p style={{ color: 'var(--bone-dim)', fontStyle: 'italic', margin: '0 0 18px' }}>
             Defending: {detail.stance}
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
-            <span className="mono" style={{ fontSize: '0.7rem', color: 'var(--bone-faint)' }}>
-              conviction {detail.conviction}/100
-            </span>
-            <div className="meter" style={{ flex: 1, maxWidth: 220 }}>
-              <span style={{ width: `${detail.conviction}%` }} />
+          <div className="detail-meter-row">
+            <ConvictionGauge value={detail.conviction} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <span className="kicker">Live conviction</span>
+              <div className="meter tall" style={{ marginTop: 10, maxWidth: 320 }}>
+                <span style={{ width: `${detail.conviction}%` }} />
+              </div>
+              <p className="mono" style={{ fontSize: '0.66rem', color: 'var(--bone-faint)', margin: '10px 0 0' }}>
+                round {Math.min(detail.round, detail.target_rounds)} of {detail.target_rounds} . {statusLabel(detail.status)}
+              </p>
             </div>
           </div>
 

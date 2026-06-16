@@ -25,11 +25,12 @@ function statusTagClass(status: string): string {
 }
 
 const rowReveal = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 14, filter: 'blur(2px)' },
   show: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: 0.04 * i, duration: 0.4, ease: [0.16, 1, 0.3, 1] as const },
+    filter: 'blur(0px)',
+    transition: { delay: 0.05 * i, duration: 0.45, ease: [0.16, 1, 0.3, 1] as const },
   }),
 };
 
@@ -105,7 +106,8 @@ export default function Docket({
                 onClick={() => onSelect(g.id)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span className={`verdict-tag ${statusTagClass(g.status)}`} style={{ fontSize: '0.6rem', padding: '3px 8px' }}>
+                  <span className={`pill ${statusTagClass(g.status)}`}>
+                    <span className="pill-dot" aria-hidden />
                     {statusLabel(g.status)}
                   </span>
                   <span className="mono" style={{ fontSize: '0.58rem', color: 'var(--bone-faint)' }}>
